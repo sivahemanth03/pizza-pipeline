@@ -1,0 +1,55 @@
+name: Pizza Pipeline CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test-service-a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install and test Service A
+        run: |
+          cd services/service-a
+          npm install
+          echo "✅ Service A installed successfully"
+
+  test-service-b:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install and test Service B
+        run: |
+          cd services/service-b
+          pip install -r requirements.txt
+          python -c "import app; print('✅ Service B imported OK')"
+
+  build-docker-images:
+    needs: [test-service-a, test-service-b]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Service A image
+        run: |
+          docker build -t service-a:${{ github.sha }} services/service-a/
+          echo "✅ Service A image built"
+
+      - name: Build Service B image
+        run: |
+          docker build -t service-b:${{ github.sha }} services/service-b/
+          echo "✅ Service B image built"
+
+      - name: Show built images
+        run: docker images | grep service
